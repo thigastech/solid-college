@@ -1,0 +1,133 @@
+<section id="catalogo" aria-labelledby="catalogo-titulo" class="relative py-20 sm:py-24">
+  <div class="page-container">
+    <div class="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+      <div>
+        <p class="eyebrow">Catálogo</p>
+        <h2 id="catalogo-titulo" tabindex="-1" class="section-title mt-4 focus:outline-none">Peças e soluções em 3D</h2>
+        <p class="section-lead">
+          Conheça alguns exemplos do que pode ser fabricado. Encontrou algo próximo do que precisa? Peça um orçamento e
+          ajustamos ao seu projeto.
+        </p>
+      </div>
+
+      <div class="w-full lg:max-w-sm">
+        <label for="busca-catalogo" class="sr-only">Pesquisar produtos por nome ou descrição</label>
+        <div class="relative">
+          <span class="pointer-events-none absolute left-3.5 top-1/2 z-10 flex -translate-y-1/2 text-muted" aria-hidden="true">
+            <lucide-icon [img]="icones.Search" [size]="18" />
+          </span>
+          <input
+            id="busca-catalogo"
+            type="search"
+            class="field-input pl-10 pr-10"
+            placeholder="Pesquisar peças…"
+            autocomplete="off"
+            maxlength="100"
+            [value]="busca()"
+            (input)="aoDigitar($event)"
+          />
+          @if (busca()) {
+            <button
+              type="button"
+              class="absolute right-1.5 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded text-muted hover:bg-fg/5 hover:text-fg"
+              aria-label="Limpar pesquisa"
+              (click)="busca.set('')"
+            >
+              <lucide-icon [img]="icones.X" [size]="16" aria-hidden="true" />
+            </button>
+          }
+        </div>
+      </div>
+    </div>
+
+    @if (store.categorias().length > 0) {
+      <div class="mt-8 flex flex-wrap gap-2" role="group" aria-label="Filtrar por categoria">
+        <button
+          type="button"
+          class="filtro"
+          [attr.aria-pressed]="categoria() === null"
+          (click)="escolherCategoria(null)"
+        >
+          Todas
+        </button>
+        @for (cat of store.categorias(); track cat) {
+          <button type="button" class="filtro" [attr.aria-pressed]="categoria() === cat" (click)="escolherCategoria(cat)">
+            {{ cat }}
+          </button>
+        }
+      </div>
+    }
+
+    @switch (store.estado()) {
+      @case ('erro') {
+        <div role="alert" class="card mt-10 flex flex-col items-center px-6 py-14 text-center">
+          <span class="flex text-danger" aria-hidden="true">
+            <lucide-icon [img]="icones.AlertTriangle" [size]="22" />
+          </span>
+          <h3 class="mt-4 text-lg font-semibold">Não foi possível carregar o catálogo</h3>
+          <p class="mt-2 max-w-md text-sm text-muted">{{ store.mensagemErro() }}</p>
+          <button type="button" class="btn btn-secondary mt-6" (click)="tentarNovamente()">
+            <lucide-icon [img]="icones.RotateCw" [size]="16" aria-hidden="true" />
+            Tentar novamente
+          </button>
+        </div>
+      }
+      @case ('pronto') {
+        <p class="mt-6 text-sm text-muted" aria-live="polite" aria-atomic="true">{{ textoResultados() }}</p>
+
+        @if (filtrados().length > 0) {
+          <ul class="mt-4 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 2xl:gap-6">
+            @for (produto of filtrados(); track produto.id; let i = $index) {
+              <li class="flex">
+                <app-produto-card
+                  class="flex w-full"
+                  [produto]="produto"
+                  [prioridade]="i < 3"
+                  (detalhes)="abrirDetalhes($event)"
+                  (orcamento)="solicitarOrcamento($event)"
+                />
+              </li>
+            }
+          </ul>
+        } @else {
+          <div class="card mt-4 flex flex-col items-center px-6 py-14 text-center">
+            <span class="flex text-muted" aria-hidden="true">
+              <lucide-icon [img]="icones.SearchX" [size]="22" />
+            </span>
+            <h3 class="mt-4 text-lg font-semibold">Nenhuma peça corresponde à sua busca</h3>
+            <p class="mt-2 max-w-md text-sm text-muted">
+              Tente outros termos ou remova os filtros. Se não encontrar o que procura, descreva seu projeto no formulário de
+              contato.
+            </p>
+            @if (temFiltro()) {
+              <button type="button" class="btn btn-secondary mt-6" (click)="limparFiltros()">Limpar filtros</button>
+            }
+          </div>
+        }
+      }
+      @default {
+        <div class="mt-10" aria-busy="true">
+          <p class="sr-only" role="status">Carregando catálogo…</p>
+          <ul class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 2xl:gap-6" aria-hidden="true">
+            @for (i of esqueletos; track i) {
+              <li class="card overflow-hidden">
+                <div class="aspect-[4/3] animate-pulse bg-fg/5"></div>
+                <div class="space-y-3 p-5">
+                  <div class="h-3 w-24 animate-pulse rounded bg-fg/5"></div>
+                  <div class="h-5 w-3/4 animate-pulse rounded bg-fg/5"></div>
+                  <div class="h-3 w-full animate-pulse rounded bg-fg/5"></div>
+                </div>
+              </li>
+            }
+          </ul>
+        </div>
+      }
+    }
+  </div>
+
+  <app-produto-detalhe
+    [produto]="detalhe.aberto()"
+    (fechar)="fecharDetalhes()"
+    (orcamento)="solicitarOrcamento($event)"
+  />
+</section>

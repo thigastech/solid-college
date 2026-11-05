@@ -1,0 +1,254 @@
+<div class="min-h-screen">
+  <header class="glass-forte sticky top-0 z-40 border-x-0 border-t-0">
+    <div class="page-container flex h-[var(--header-h)] items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <app-logo [comSlogan]="false" />
+        <span class="badge hidden sm:inline-flex">Área administrativa</span>
+      </div>
+      <div class="flex items-center gap-1.5">
+        <button
+          type="button"
+          class="btn-icon"
+          [attr.aria-label]="tema.tema() === 'escuro' ? 'Ativar tema claro' : 'Ativar tema escuro'"
+          (click)="tema.alternar($event)"
+        >
+          <lucide-icon [img]="tema.tema() === 'escuro' ? icones.Sun : icones.Moon" [size]="19" aria-hidden="true" />
+        </button>
+        <a routerLink="/" class="btn btn-ghost btn-sm">
+          <lucide-icon [img]="icones.ArrowLeft" [size]="16" aria-hidden="true" />
+          <span class="hidden sm:inline">Ver site</span><span class="sm:hidden">Site</span>
+        </a>
+        @if (auth.autenticado()) {
+          <button type="button" class="btn btn-secondary btn-sm" (click)="sair()">
+            <lucide-icon [img]="icones.LogOut" [size]="16" aria-hidden="true" />
+            Sair
+          </button>
+        }
+      </div>
+    </div>
+  </header>
+
+  @if (!auth.autenticado()) {
+    <!-- Acesso -->
+    <div class="page-container flex min-h-[calc(100vh-var(--header-h))] items-center justify-center py-12">
+      <form
+        class="card w-full max-w-md p-6 sm:p-8"
+        [formGroup]="formLogin"
+        (ngSubmit)="entrar()"
+        novalidate
+        aria-labelledby="login-titulo"
+      >
+        <h1 id="login-titulo" class="text-2xl font-extrabold tracking-tight">Consulta de contatos</h1>
+        <p class="mt-2 text-sm leading-relaxed text-muted">
+          Acesso restrito. Informe o token definido em <code class="font-mono text-fg">ADMIN_TOKEN</code> no
+          <code class="font-mono text-fg">backend/.env</code>. Para consultá-lo, rode
+          <code class="font-mono text-fg">flask admin-token</code> na pasta do backend.
+          Ele fica guardado apenas nesta aba e é apagado ao sair ou fechar o navegador.
+        </p>
+
+        @if (erroLogin(); as erro) {
+          <div role="alert" class="mt-5 flex items-start gap-2.5 rounded-xl border border-danger/40 bg-danger/10 p-3 text-sm">
+            <span class="mt-0.5 flex text-danger" aria-hidden="true"><lucide-icon [img]="icones.AlertTriangle" [size]="18" /></span>
+            <p>{{ erro }}</p>
+          </div>
+        }
+
+        <div class="mt-6">
+          <label for="token" class="field-label">Token de acesso</label>
+          <input
+            #campoToken
+            id="token"
+            type="password"
+            class="field-input font-mono"
+            formControlName="token"
+            autocomplete="off"
+            spellcheck="false"
+            [attr.aria-invalid]="erroToken() ? 'true' : null"
+            [attr.aria-describedby]="erroToken() ? 'token-erro' : null"
+          />
+          @if (erroToken(); as msg) {
+            <p id="token-erro" class="field-error">{{ msg }}</p>
+          }
+        </div>
+
+        <button type="submit" class="btn btn-primary mt-6 w-full" [disabled]="entrando()">
+          @if (entrando()) {
+            <span class="anim-spin h-4 w-4 rounded-full border-2 border-on-accent/30 border-t-on-accent" aria-hidden="true"></span>
+            Verificando…
+          } @else {
+            Entrar
+          }
+        </button>
+      </form>
+    </div>
+  } @else {
+    <!-- Lista de contatos -->
+    <div class="page-container py-10 sm:py-12">
+      <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p class="eyebrow">Área administrativa</p>
+          <h1 #tituloLista tabindex="-1" class="mt-3 text-3xl font-extrabold tracking-tight focus:outline-none">Contatos recebidos</h1>
+          <p class="mt-2 text-sm text-muted" aria-live="polite">
+            @if (dadosMeta()) {
+              {{ textoTotal() }}
+            }
+          </p>
+        </div>
+        <button type="button" class="btn btn-secondary btn-sm self-start sm:self-auto" (click)="carregar()" [disabled]="estado() === 'carregando'">
+          <lucide-icon [img]="icones.RotateCw" [size]="16" aria-hidden="true" />
+          Atualizar
+        </button>
+      </div>
+
+      <form class="mt-6 grid gap-3 md:grid-cols-[1fr_15rem_15rem]" [formGroup]="filtros" (ngSubmit)="carregar()" role="search">
+        <div class="relative">
+          <label for="busca-admin" class="sr-only">Buscar por nome, e-mail ou assunto</label>
+          <span class="pointer-events-none absolute left-3.5 top-1/2 z-10 flex -translate-y-1/2 text-muted" aria-hidden="true">
+            <lucide-icon [img]="icones.Search" [size]="18" />
+          </span>
+          <input id="busca-admin" type="search" class="field-input pl-10" placeholder="Buscar por nome, e-mail ou assunto…" formControlName="busca" maxlength="100" autocomplete="off" />
+        </div>
+        <div>
+          <label for="demanda-admin" class="sr-only">Filtrar por demanda</label>
+          <select id="demanda-admin" class="field-input" formControlName="demanda">
+            <option value="">Todas as demandas</option>
+            @for (d of demandas; track d.valor) {
+              <option [value]="d.valor">{{ d.rotulo }}</option>
+            }
+          </select>
+        </div>
+        <div>
+          <label for="produto-admin" class="sr-only">Filtrar por produto</label>
+          <select id="produto-admin" class="field-input" formControlName="produto_id">
+            <option value="">Todos os produtos</option>
+            @for (p of dadosMeta()?.produtos ?? []; track p.id) {
+              <option [value]="p.id">{{ p.nome }}{{ p.status === 'inativo' ? ' (inativo)' : '' }}</option>
+            }
+          </select>
+        </div>
+      </form>
+
+      @switch (estado()) {
+        @case ('erro') {
+          <div role="alert" class="card mt-8 flex flex-col items-center px-6 py-12 text-center">
+            <span class="flex text-danger" aria-hidden="true">
+              <lucide-icon [img]="icones.AlertTriangle" [size]="22" />
+            </span>
+            <h2 class="mt-4 text-lg font-bold">Não foi possível carregar os contatos</h2>
+            <p class="mt-2 max-w-md text-sm text-muted">{{ mensagemErro() }}</p>
+            <button type="button" class="btn btn-secondary mt-6" (click)="carregar()">Tentar novamente</button>
+          </div>
+        }
+        @case ('pronto') {
+          @if (contatos().length === 0) {
+            <div class="card mt-8 flex flex-col items-center px-6 py-14 text-center">
+              <span class="flex text-muted" aria-hidden="true">
+                <lucide-icon [img]="icones.Inbox" [size]="22" />
+              </span>
+              @if (filtroAtivo()) {
+                <h2 class="mt-4 text-lg font-bold">Nenhum contato corresponde aos filtros</h2>
+                <button type="button" class="btn btn-secondary mt-6" (click)="limparFiltros()">Limpar filtros</button>
+              } @else {
+                <h2 class="mt-4 text-lg font-bold">Nenhum contato recebido ainda</h2>
+                <p class="mt-2 text-sm text-muted">As mensagens enviadas pelo formulário do site aparecerão aqui.</p>
+              }
+            </div>
+          } @else {
+            <ul class="mt-6 space-y-3">
+              @for (c of contatos(); track c.id) {
+                <li class="card overflow-hidden">
+                  <button
+                    type="button"
+                    class="grid w-full gap-x-6 gap-y-1 p-4 text-left transition-colors hover:bg-fg/[0.03] sm:grid-cols-[9rem_1fr_auto] sm:items-center sm:p-5"
+                    [attr.aria-expanded]="expandido() === c.id"
+                    [attr.aria-controls]="'contato-' + c.id"
+                    (click)="alternar(c.id)"
+                  >
+                    <span class="font-mono text-xs text-muted">{{ formatarData(c.data_envio) }}</span>
+                    <span class="min-w-0">
+                      <span class="block truncate font-bold text-fg">{{ c.assunto }}</span>
+                      <span class="mt-0.5 block truncate text-sm text-muted">{{ c.nome_cliente }} · {{ c.email_cliente }}</span>
+                    </span>
+                    <span class="flex flex-wrap items-center gap-2 sm:justify-end">
+                      <span class="badge">{{ rotuloDemanda(c.demanda) }}</span>
+                      @if (c.produto) {
+                        <span class="badge max-w-[14rem] truncate" [class.line-through]="c.produto.status === 'inativo'" [title]="c.produto.nome">{{ c.produto.nome }}</span>
+                      }
+                      <span class="flex text-muted transition-transform" [class.rotate-180]="expandido() === c.id" aria-hidden="true">
+                        <lucide-icon [img]="icones.ChevronDown" [size]="18" />
+                      </span>
+                    </span>
+                  </button>
+
+                  @if (expandido() === c.id) {
+                    <div [id]="'contato-' + c.id" class="border-t border-border/60 px-4 pb-5 pt-4 sm:px-5">
+                      <dl class="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
+                        <div><dt class="text-xs uppercase tracking-wider text-muted">Nome</dt><dd class="mt-0.5 break-words font-medium">{{ c.nome_cliente }}</dd></div>
+                        <div><dt class="text-xs uppercase tracking-wider text-muted">E-mail</dt><dd class="mt-0.5 break-all font-medium">{{ c.email_cliente }}</dd></div>
+                        <div>
+                          <dt class="text-xs uppercase tracking-wider text-muted">Telefone</dt>
+                          <dd class="mt-0.5 font-medium">
+                            @if (c.telefone) {
+                              <a class="underline underline-offset-2 hover:text-accent-ink" [href]="'tel:+' + c.telefone">{{ c.telefone }}</a>
+                            } @else {
+                              Não informado
+                            }
+                          </dd>
+                        </div>
+                        <div><dt class="text-xs uppercase tracking-wider text-muted">Demanda</dt><dd class="mt-0.5 font-medium">{{ rotuloDemanda(c.demanda) }}</dd></div>
+                        <div>
+                          <dt class="text-xs uppercase tracking-wider text-muted">Produto</dt>
+                          <dd class="mt-0.5 font-medium">
+                            {{ c.produto ? c.produto.nome : 'Nenhum (contato geral)' }}{{ c.produto?.status === 'inativo' ? ' · inativo' : '' }}
+                          </dd>
+                        </div>
+                      </dl>
+                      <h3 class="mt-4 text-xs uppercase tracking-wider text-muted">Mensagem</h3>
+                      <p class="mt-1.5 whitespace-pre-line break-words rounded-xl border border-border/60 bg-surface/50 p-4 text-[0.95rem] leading-relaxed">{{ c.mensagem }}</p>
+                      <div class="mt-4 flex flex-wrap gap-2">
+                        <a class="btn btn-primary btn-sm" [href]="linkResposta(c)">
+                          <lucide-icon [img]="icones.Mail" [size]="16" aria-hidden="true" />
+                          Responder por e-mail
+                        </a>
+                        <button type="button" class="btn btn-secondary btn-sm" (click)="copiarEmail(c)">
+                          <lucide-icon [img]="copiado() === c.id ? icones.Check : icones.Copy" [size]="16" aria-hidden="true" />
+                          {{ copiado() === c.id ? 'E-mail copiado' : 'Copiar e-mail' }}
+                        </button>
+                      </div>
+                    </div>
+                  }
+                </li>
+              }
+            </ul>
+
+            @if ((dadosMeta()?.paginas ?? 1) > 1) {
+              <nav class="mt-6 flex items-center justify-between gap-3" aria-label="Paginação">
+                <button type="button" class="btn btn-secondary btn-sm" [disabled]="pagina() <= 1" (click)="irPagina(pagina() - 1)">
+                  <lucide-icon [img]="icones.ChevronLeft" [size]="16" aria-hidden="true" />
+                  Anterior
+                </button>
+                <span class="text-sm text-muted">Página {{ pagina() }} de {{ dadosMeta()?.paginas }}</span>
+                <button type="button" class="btn btn-secondary btn-sm" [disabled]="pagina() >= (dadosMeta()?.paginas ?? 1)" (click)="irPagina(pagina() + 1)">
+                  Próxima
+                  <lucide-icon [img]="icones.ChevronRight" [size]="16" aria-hidden="true" />
+                </button>
+              </nav>
+            }
+          }
+        }
+        @default {
+          <div class="mt-6 space-y-3" aria-busy="true">
+            <p class="sr-only" role="status">Carregando contatos…</p>
+            @for (i of esqueletos; track i) {
+              <div class="card h-[4.5rem] animate-pulse" aria-hidden="true"></div>
+            }
+          </div>
+        }
+      }
+
+      <p class="mt-10 text-xs leading-relaxed text-muted">
+        Estes dados pessoais servem apenas para responder aos contatos. Não os exporte nem compartilhe fora dessa finalidade.
+      </p>
+    </div>
+  }
+</div>

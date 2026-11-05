@@ -1,0 +1,324 @@
+@import '@fontsource-variable/inter/index.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* -------------------------------------------------------------------------
+ * Tokens visuais da identidade SOLID (laranja + grafite sobre papel creme).
+ * Valores em RGB (sem vírgulas) para permitir opacidade nas classes Tailwind.
+ * Tema claro é o padrão; o escuro é ativado por [data-theme='dark'] no <html>
+ * (definido por TemaService e pelo script inline do index.html).
+ *
+ * Direção visual: oficina/desenho técnico com vidro sóbrio. Painéis translúcidos
+ * com desfoque e borda fina sobre o fundo animado; laranja só onde há ação.
+ * Sem brilhos coloridos, reflexos chamativos ou animações de enfeite.
+ * ---------------------------------------------------------------------- */
+:root {
+  --c-bg: 246 242 234;        /* #F6F2EA papel creme */
+  --c-surface: 255 253 249;
+  --c-surface-2: 238 233 223;
+  --c-border: 216 207 192;
+  --c-fg: 38 37 35;           /* #262523 grafite */
+  --c-muted: 94 89 82;
+  --c-accent: 242 106 27;     /* #F26A1B laranja da marca (preenchimentos) */
+  --c-accent-ink: 180 64 8;   /* laranja escuro para TEXTO (contraste AA no creme) */
+  --c-on-accent: 28 22 16;    /* texto sobre o laranja */
+  --c-success: 21 128 61;
+  --c-danger: 190 24 60;
+
+  --grid-line: 38 37 35;
+  --grid-a: 0.05;
+
+  /* Vidro */
+  --vidro-a: 0.66;
+  --vidro-forte-a: 0.86;
+  --vidro-borda: 255 255 255;
+  --vidro-borda-a: 0.7;
+  --vidro-realce-a: 0.7;
+  --vidro-sombra-a: 0.08;
+
+  --radius: 0.375rem;
+  --header-h: 4.25rem;
+
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  --c-bg: 20 19 18;
+  --c-surface: 29 27 25;
+  --c-surface-2: 38 36 33;
+  --c-border: 62 58 53;
+  --c-fg: 240 236 229;
+  --c-muted: 168 161 151;
+  --c-accent: 255 116 38;
+  --c-accent-ink: 255 145 82;
+  --c-on-accent: 24 18 12;
+  --c-success: 74 222 128;
+  --c-danger: 251 113 133;
+
+  --grid-line: 240 236 229;
+  --grid-a: 0.04;
+
+  --vidro-a: 0.6;
+  --vidro-forte-a: 0.84;
+  --vidro-borda: 255 255 255;
+  --vidro-borda-a: 0.09;
+  --vidro-realce-a: 0.06;
+  --vidro-sombra-a: 0.35;
+
+  color-scheme: dark;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+    }
+  }
+
+  body {
+    @apply bg-bg font-sans text-fg antialiased;
+    /* Leve variação de cor para o vidro ter o que refratar. */
+    background-image:
+      radial-gradient(60vw 50vh at 85% 0%, rgb(var(--c-accent) / 0.07), transparent 70%),
+      radial-gradient(50vw 50vh at 0% 100%, rgb(var(--c-accent) / 0.05), transparent 70%);
+    background-attachment: fixed;
+    font-feature-settings: 'cv11', 'ss01';
+    overflow-x: hidden;
+  }
+
+  /* Monitores largos: a interface cresce um pouco para não parecer "perdida" na tela. */
+  @media (min-width: 1920px) {
+    html {
+      font-size: 17px;
+    }
+  }
+  @media (min-width: 2400px) {
+    html {
+      font-size: 18.5px;
+    }
+  }
+
+  h1,
+  h2,
+  h3 {
+    letter-spacing: -0.015em;
+  }
+
+  section[id] {
+    scroll-margin-top: calc(var(--header-h) + 1rem);
+  }
+
+  :focus-visible {
+    outline: 2px solid rgb(var(--c-accent));
+    outline-offset: 2px;
+    border-radius: 3px;
+  }
+
+  /* Ícones Lucide: classes de layout ficam em wrappers (o componente repassa "class" ao SVG). */
+  lucide-icon {
+    display: inline-flex;
+    flex-shrink: 0;
+  }
+
+  ::selection {
+    background: rgb(var(--c-accent) / 0.3);
+  }
+}
+
+@layer components {
+  .page-container {
+    @apply mx-auto w-full max-w-page px-4 sm:px-6 lg:px-8 2xl:max-w-page-wide 2xl:px-12;
+  }
+
+  /* Rótulo de seção: discreto, sem ornamentos. */
+  .eyebrow {
+    @apply text-xs font-semibold uppercase tracking-[0.08em] text-accent-ink;
+  }
+
+  .section-title {
+    @apply text-balance text-3xl font-extrabold tracking-tight text-fg sm:text-[2.4rem] sm:leading-[1.1];
+  }
+
+  .section-lead {
+    @apply mt-4 max-w-2xl text-pretty text-base leading-relaxed text-muted sm:text-lg;
+  }
+
+  .text-marca {
+    color: rgb(var(--c-accent-ink));
+  }
+
+  /* ---------------------------------------------------------------------
+   * Liquid glass sóbrio: translúcido, desfoque forte (o conteúdo atrás vira
+   * só cor, sem "borrar" formas), borda fina clara e um realce de 1px no topo.
+   * Fallback opaco sem backdrop-filter ou com prefers-reduced-transparency.
+   * ------------------------------------------------------------------ */
+  .glass,
+  .glass-forte,
+  .card {
+    background-color: rgb(var(--c-surface) / var(--vidro-a));
+    border: 1px solid rgb(var(--vidro-borda) / var(--vidro-borda-a));
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / var(--vidro-realce-a)),
+      0 1px 2px rgb(0 0 0 / calc(var(--vidro-sombra-a) * 0.5)),
+      0 12px 32px -16px rgb(0 0 0 / var(--vidro-sombra-a));
+    -webkit-backdrop-filter: blur(24px) saturate(150%);
+    backdrop-filter: blur(24px) saturate(150%);
+  }
+  .glass-forte {
+    background-color: rgb(var(--c-surface) / var(--vidro-forte-a));
+  }
+
+  /* Botões */
+  .btn {
+    @apply inline-flex min-h-11 select-none items-center justify-center gap-2 whitespace-nowrap rounded-[var(--radius)] px-5 text-sm font-semibold transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-60;
+  }
+  .btn-primary {
+    @apply bg-accent text-on-accent hover:bg-accent/90;
+  }
+  .btn-secondary {
+    @apply border border-border bg-surface/70 text-fg backdrop-blur-md hover:border-fg/40;
+  }
+  .btn-ghost {
+    @apply text-muted hover:bg-fg/5 hover:text-fg;
+  }
+  .btn-sm {
+    @apply min-h-9 px-3.5 text-[0.8rem];
+  }
+  .btn-icon {
+    @apply inline-flex h-10 w-10 items-center justify-center rounded-[var(--radius)] text-muted transition-colors hover:bg-fg/5 hover:text-fg;
+  }
+
+  .badge {
+    @apply inline-flex items-center rounded-[4px] border border-border bg-surface-2/60 px-2 py-0.5 text-xs font-medium text-muted;
+  }
+
+  .card {
+    @apply rounded-xl;
+  }
+
+  /* Campos de formulário */
+  .field-label {
+    @apply mb-1.5 block text-sm font-medium text-fg;
+  }
+  .field-input {
+    @apply block w-full rounded-[var(--radius)] border border-border bg-surface/80 px-3.5 py-2.5 text-[0.95rem] text-fg placeholder:text-muted/70 transition-colors focus:border-fg/60 focus:outline-none focus:ring-2 focus:ring-accent/30;
+  }
+  .field-input[aria-invalid='true'] {
+    @apply border-danger/80 focus:border-danger focus:ring-danger/30;
+  }
+  .field-error {
+    @apply mt-1.5 flex items-start gap-1.5 text-sm text-danger;
+  }
+  .field-hint {
+    @apply mt-1.5 text-xs text-muted;
+  }
+
+  /* Papel quadriculado do logotipo. */
+  .bg-grid {
+    background-image:
+      linear-gradient(to right, rgb(var(--grid-line) / var(--grid-a)) 1px, transparent 1px),
+      linear-gradient(to bottom, rgb(var(--grid-line) / var(--grid-a)) 1px, transparent 1px);
+    background-size: 32px 32px;
+  }
+
+  /* Área onde as peças aparecem: fundo neutro e uniforme, como uma mesa de impressão. */
+  .vitrine-palco {
+    background-color: rgb(var(--c-surface-2) / 0.55);
+  }
+
+  .filtro {
+    @apply inline-flex min-h-9 items-center rounded-[var(--radius)] border border-border bg-surface/70 px-3.5 text-sm font-medium text-muted transition-colors hover:border-fg/40 hover:text-fg;
+  }
+  .filtro[aria-pressed='true'] {
+    @apply border-fg bg-fg text-bg;
+  }
+
+  /* Atalho do WhatsApp: verde da marca WhatsApp, sombra neutra, sem animação de chamar atenção. */
+  .whatsapp-flutuante {
+    background-color: #1fa855; /* contraste ≥ 3:1 com o ícone branco */
+    box-shadow:
+      0 1px 2px rgb(0 0 0 / 0.15),
+      0 10px 24px -10px rgb(0 0 0 / 0.45);
+    margin-bottom: env(safe-area-inset-bottom);
+    transition: background-color 150ms ease, transform 150ms ease;
+  }
+  .whatsapp-flutuante:hover {
+    background-color: #17924a;
+    transform: translateY(-1px);
+  }
+
+  .sr-only-focusable:not(:focus):not(:focus-within) {
+    @apply sr-only;
+  }
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass,
+  .glass-forte,
+  .card {
+    background-color: rgb(var(--c-surface));
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .glass,
+  .glass-forte,
+  .card {
+    background-color: rgb(var(--c-surface));
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+/* Única animação "decorativa" mantida: indicador de carregamento. */
+@media (prefers-reduced-motion: no-preference) {
+  .anim-spin {
+    animation: spin 0.8s linear infinite;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Troca de tema: revelação circular via View Transitions (ver TemaService). */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+::view-transition-new(root) {
+  z-index: 2;
+}
+/* Fallback sem View Transitions: troca instantânea, sem dezenas de transições simultâneas. */
+.trocando-tema *,
+.trocando-tema *::before,
+.trocando-tema *::after {
+  transition: none !important;
+}
+
+/* Diálogo nativo */
+dialog::backdrop {
+  background: rgb(18 14 10 / 0.45);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}

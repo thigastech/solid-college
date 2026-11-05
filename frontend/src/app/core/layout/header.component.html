@@ -1,0 +1,86 @@
+<header
+  class="header sticky top-0 z-40 h-[var(--header-h)] border-x-0 border-b border-t-0 border-transparent transition-colors duration-200"
+  [class.glass]="rolou() || menuAberto()"
+  [class.!border-border]="rolou() || menuAberto()"
+>
+  <div class="page-container flex h-full items-center justify-between gap-4">
+    <a href="/#inicio" (click)="irPara($event, 'inicio')" class="rounded-lg" [attr.aria-label]="config.nomeMarca + ', ir para o início'">
+      <app-logo />
+    </a>
+
+    <nav aria-label="Principal" class="hidden md:block">
+      <ul class="flex items-center gap-1">
+        @for (link of links; track link.secao) {
+          <li>
+            <a
+              [href]="'/#' + link.secao"
+              (click)="irPara($event, link.secao)"
+              class="rounded-md px-3 py-2 text-sm font-medium text-muted transition-colors hover:text-fg"
+              >{{ link.rotulo }}</a
+            >
+          </li>
+        }
+      </ul>
+    </nav>
+
+    <div class="flex items-center gap-1.5 sm:gap-2">
+      @if (instagram) {
+        <a
+          [href]="instagram"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="btn-icon"
+          [attr.aria-label]="'Instagram da ' + config.nomeMarca + ' (abre em nova aba)'"
+          title="Instagram"
+        >
+          <lucide-icon [img]="icones.Instagram" [size]="19" aria-hidden="true" />
+        </a>
+      }
+      <button
+        type="button"
+        class="btn-icon"
+        [attr.aria-label]="tema.tema() === 'escuro' ? 'Ativar tema claro' : 'Ativar tema escuro'"
+        [attr.title]="tema.tema() === 'escuro' ? 'Tema claro' : 'Tema escuro'"
+        (click)="tema.alternar($event)"
+      >
+        <lucide-icon [img]="tema.tema() === 'escuro' ? icones.Sun : icones.Moon" [size]="19" aria-hidden="true" />
+      </button>
+      <a href="/#contato" (click)="irPara($event, 'contato')" class="btn btn-primary btn-sm hidden sm:inline-flex">
+        Solicitar orçamento
+      </a>
+      <button
+        #botaoMenu
+        type="button"
+        class="btn-icon md:hidden"
+        aria-controls="menu-mobile"
+        [attr.aria-expanded]="menuAberto()"
+        [attr.aria-label]="menuAberto() ? 'Fechar menu' : 'Abrir menu'"
+        (click)="alternarMenu()"
+      >
+        <lucide-icon [img]="menuAberto() ? icones.X : icones.Menu" [size]="22" aria-hidden="true" />
+      </button>
+    </div>
+  </div>
+
+  <div
+    id="menu-mobile"
+    class="glass-forte border-x-0 border-t-0 md:hidden"
+    [hidden]="!menuAberto()"
+  >
+    <nav aria-label="Menu móvel" class="page-container py-4">
+      <ul class="flex flex-col gap-1">
+        @for (link of links; track link.secao) {
+          <li>
+            <a
+              [href]="'/#' + link.secao"
+              (click)="irPara($event, link.secao)"
+              class="block rounded-lg px-3 py-3 text-base font-medium text-fg hover:bg-fg/5"
+              >{{ link.rotulo }}</a
+            >
+          </li>
+        }
+      </ul>
+      <a href="/#contato" (click)="irPara($event, 'contato')" class="btn btn-primary mt-3 w-full">Solicitar orçamento</a>
+    </nav>
+  </div>
+</header>

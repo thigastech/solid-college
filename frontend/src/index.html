@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <title>SOLID · Peças e soluções em impressão 3D</title>
+  <base href="/">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="SOLID: peças funcionais, componentes personalizados e soluções em impressão 3D. Conheça o catálogo e solicite um orçamento.">
+  <meta name="theme-color" content="#F6F2EA">
+  <meta name="color-scheme" content="light dark">
+  <link rel="icon" type="image/svg+xml" href="assets/img/favicon.svg">
+  <script>
+    // Aplica o tema antes do primeiro desenho (mesma regra do TemaService).
+    (function () {
+      var t = null;
+      try { t = localStorage.getItem('solid-tema'); } catch (e) {}
+      if (t !== 'claro' && t !== 'escuro') {
+        t = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'escuro' : 'claro';
+      }
+      document.documentElement.setAttribute('data-theme', t === 'escuro' ? 'dark' : 'light');
+    })();
+  </script>
+</head>
+<body>
+  <app-root></app-root>
+  <noscript>Este site precisa de JavaScript para exibir o catálogo.</noscript>
+</body>
+</html>

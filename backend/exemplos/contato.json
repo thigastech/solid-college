@@ -1,0 +1,9 @@
+{
+  "nome_cliente": "Ana Souza",
+  "email_cliente": "ana@example.com",
+  "telefone": "11 90000-0000",
+  "demanda": "peca_catalogo",
+  "assunto": "Orçamento de engrenagens",
+  "mensagem": "Gostaria de um orçamento para 20 unidades.",
+  "produto_id": 1
+}

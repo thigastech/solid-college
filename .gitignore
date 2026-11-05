@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Ambiente e segredos (nunca versionar)
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Banco de dados local, backups e logs (contêm dados de contato)
+backend/instance/
+backend/backups/
+backups/
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+*.log
+
+# Node / Angular
+node_modules/
+frontend/dist/
+frontend/.angular/
+frontend/coverage/
+
+# Editores e SO
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

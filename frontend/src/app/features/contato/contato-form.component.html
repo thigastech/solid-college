@@ -1,0 +1,258 @@
+<section id="contato" aria-labelledby="contato-titulo" class="relative py-20 sm:py-24">
+  <div class="page-container grid gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:gap-16">
+    <div>
+      <p class="eyebrow">Contato</p>
+      <h2 id="contato-titulo" tabindex="-1" class="section-title mt-4 focus:outline-none">Vamos tirar seu projeto do papel?</h2>
+      <p class="section-lead">
+        Conte o que você precisa: um projeto novo, um protótipo, uma produção em lote ou uma peça do catálogo. Respondemos pelo
+        e-mail informado.
+      </p>
+      <ul class="mt-8 space-y-3 text-sm text-muted">
+        <li class="flex gap-3"><span class="mt-[0.6rem] h-px w-3 shrink-0 bg-muted" aria-hidden="true"></span>Descreva a finalidade da peça e onde ela será usada.</li>
+        <li class="flex gap-3"><span class="mt-[0.6rem] h-px w-3 shrink-0 bg-muted" aria-hidden="true"></span>Se possível, informe medidas aproximadas e a quantidade desejada.</li>
+        <li class="flex gap-3"><span class="mt-[0.6rem] h-px w-3 shrink-0 bg-muted" aria-hidden="true"></span>Não envie documentos pessoais: só precisamos do seu nome, e-mail e, se quiser, um telefone.</li>
+      </ul>
+    </div>
+
+    <div class="card p-6 sm:p-8">
+      <form #formEl [formGroup]="form" (ngSubmit)="enviar()" novalidate [attr.aria-busy]="enviando()">
+        @if (sucesso()) {
+          <div
+            #alertaSucesso
+            role="status"
+            tabindex="-1"
+            class="mb-6 flex items-start gap-3 rounded-xl border border-success/40 bg-success/10 p-4 text-sm text-fg focus:outline-none"
+          >
+            <span class="mt-0.5 flex shrink-0 text-success" aria-hidden="true"><lucide-icon [img]="icones.CheckCircle2" [size]="20" /></span>
+            <div>
+              <p class="font-semibold">Mensagem enviada!</p>
+              <p class="mt-0.5 text-muted">{{ sucesso() }}</p>
+            </div>
+          </div>
+        }
+        @if (erroGeral()) {
+          <div
+            #alertaErro
+            role="alert"
+            tabindex="-1"
+            class="mb-6 flex items-start gap-3 rounded-xl border border-danger/40 bg-danger/10 p-4 text-sm text-fg focus:outline-none"
+          >
+            <span class="mt-0.5 flex shrink-0 text-danger" aria-hidden="true"><lucide-icon [img]="icones.AlertCircle" [size]="20" /></span>
+            <p>{{ erroGeral() }}</p>
+          </div>
+        }
+
+        <div class="grid gap-5 sm:grid-cols-2">
+          <div>
+            <label for="nome_cliente" class="field-label">Nome <span class="text-danger" aria-hidden="true">*</span></label>
+            <input
+              id="nome_cliente"
+              type="text"
+              formControlName="nome_cliente"
+              class="field-input"
+              autocomplete="name"
+              [attr.maxlength]="L.nomeMax"
+              required
+              [attr.aria-invalid]="!!erroDe('nome_cliente')"
+              [attr.aria-describedby]="erroDe('nome_cliente') ? 'nome_cliente-erro' : null"
+            />
+            @if (erroDe('nome_cliente'); as msg) {
+              <p id="nome_cliente-erro" class="field-error">{{ msg }}</p>
+            }
+          </div>
+
+          <div>
+            <label for="email_cliente" class="field-label">E-mail <span class="text-danger" aria-hidden="true">*</span></label>
+            <input
+              id="email_cliente"
+              type="email"
+              formControlName="email_cliente"
+              class="field-input"
+              autocomplete="email"
+              inputmode="email"
+              [attr.maxlength]="L.emailMax"
+              required
+              [attr.aria-invalid]="!!erroDe('email_cliente')"
+              [attr.aria-describedby]="erroDe('email_cliente') ? 'email_cliente-erro' : null"
+            />
+            @if (erroDe('email_cliente'); as msg) {
+              <p id="email_cliente-erro" class="field-error">{{ msg }}</p>
+            }
+          </div>
+
+          <div>
+            <label for="telefone" class="field-label">Telefone <span class="font-normal text-muted">(opcional)</span></label>
+            <input
+              id="telefone"
+              type="tel"
+              formControlName="telefone"
+              class="field-input"
+              autocomplete="tel"
+              inputmode="tel"
+              placeholder="(DDD) número"
+              [attr.maxlength]="L.telefoneMax"
+              [attr.aria-invalid]="!!erroDe('telefone')"
+              [attr.aria-describedby]="erroDe('telefone') ? 'telefone-erro' : 'telefone-dica'"
+            />
+            @if (erroDe('telefone'); as msg) {
+              <p id="telefone-erro" class="field-error">{{ msg }}</p>
+            } @else {
+              <p id="telefone-dica" class="field-hint">Só para retornarmos este contato.</p>
+            }
+          </div>
+
+          <div>
+            <label for="demanda" class="field-label">Demanda <span class="text-danger" aria-hidden="true">*</span></label>
+            <select
+              id="demanda"
+              formControlName="demanda"
+              class="field-input appearance-none bg-[length:16px] bg-[right_0.9rem_center] bg-no-repeat pr-10"
+              style="background-image: url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23A1AAB6' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E&quot;)"
+              required
+              [attr.aria-invalid]="!!erroDe('demanda')"
+              [attr.aria-describedby]="erroDe('demanda') ? 'demanda-erro' : 'demanda-dica'"
+            >
+              <option value="" disabled>Selecione uma opção</option>
+              @for (d of demandas; track d.valor) {
+                <option [value]="d.valor">{{ d.rotulo }}</option>
+              }
+            </select>
+            @if (erroDe('demanda'); as msg) {
+              <p id="demanda-erro" class="field-error">{{ msg }}</p>
+            } @else {
+              <p id="demanda-dica" class="field-hint">Detalhe o pedido na mensagem.</p>
+            }
+          </div>
+
+          @if (form.controls.demanda.value === DEMANDA_CATALOGO) {
+            <div class="sm:col-span-2">
+              <label for="produto_id" class="field-label">Peça do catálogo <span class="font-normal text-muted">(opcional)</span></label>
+              <div class="flex gap-2">
+                <select
+                  id="produto_id"
+                  formControlName="produto_id"
+                  class="field-input appearance-none bg-[length:16px] bg-[right_0.9rem_center] bg-no-repeat pr-10"
+                  style="background-image: url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23A1AAB6' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E&quot;)"
+                  [attr.aria-invalid]="!!erroDe('produto_id')"
+                  [attr.aria-describedby]="erroDe('produto_id') ? 'produto_id-erro' : 'produto_id-dica'"
+                >
+                  <option [ngValue]="null">Ainda não escolhi</option>
+                  @for (p of store.produtos(); track p.id) {
+                    <option [ngValue]="p.id">{{ p.nome }}</option>
+                  }
+                </select>
+                @if (form.controls.produto_id.value !== null) {
+                  <button type="button" class="btn btn-secondary px-3" (click)="removerProduto()" aria-label="Remover peça selecionada">
+                    <lucide-icon [img]="icones.X" [size]="18" aria-hidden="true" />
+                  </button>
+                }
+              </div>
+              @if (erroDe('produto_id'); as msg) {
+                <p id="produto_id-erro" class="field-error">{{ msg }}</p>
+              } @else {
+                <p id="produto_id-dica" class="field-hint">
+                  @if (store.estado() === 'erro') {
+                    A lista de peças não pôde ser carregada, mas você pode enviar sua mensagem normalmente.
+                  } @else {
+                    Escolha aqui ou pelo botão “Orçamento” no catálogo.
+                  }
+                </p>
+              }
+            </div>
+          }
+
+          <div class="sm:col-span-2">
+            <label for="assunto" class="field-label">Assunto <span class="text-danger" aria-hidden="true">*</span></label>
+            <input
+              id="assunto"
+              type="text"
+              formControlName="assunto"
+              class="field-input"
+              [attr.maxlength]="L.assuntoMax"
+              required
+              [attr.aria-invalid]="!!erroDe('assunto')"
+              [attr.aria-describedby]="erroDe('assunto') ? 'assunto-erro' : null"
+            />
+            @if (erroDe('assunto'); as msg) {
+              <p id="assunto-erro" class="field-error">{{ msg }}</p>
+            }
+          </div>
+
+          <div class="sm:col-span-2">
+            <div class="flex items-baseline justify-between">
+              <label for="mensagem" class="field-label">Mensagem <span class="text-danger" aria-hidden="true">*</span></label>
+              <span class="text-xs tabular-nums text-muted" aria-hidden="true">{{ tamanhoMensagem }}/{{ L.mensagemMax }}</span>
+            </div>
+            <textarea
+              id="mensagem"
+              formControlName="mensagem"
+              rows="5"
+              class="field-input min-h-32 resize-y"
+              [attr.maxlength]="L.mensagemMax"
+              required
+              [attr.aria-invalid]="!!erroDe('mensagem')"
+              [attr.aria-describedby]="erroDe('mensagem') ? 'mensagem-erro' : 'mensagem-dica'"
+            ></textarea>
+            @if (erroDe('mensagem'); as msg) {
+              <p id="mensagem-erro" class="field-error">{{ msg }}</p>
+            } @else {
+              <p id="mensagem-dica" class="field-hint">Entre {{ L.mensagemMin }} e {{ L.mensagemMax }} caracteres.</p>
+            }
+          </div>
+
+          <div class="sm:col-span-2">
+            <label for="captcha_resposta" class="field-label">
+              Verificação: {{ desafio()?.pergunta ?? 'carregando…' }} <span class="text-danger" aria-hidden="true">*</span>
+            </label>
+            <div class="flex gap-2">
+              <input
+                id="captcha_resposta"
+                type="text"
+                formControlName="captcha_resposta"
+                class="field-input max-w-28"
+                autocomplete="off"
+                inputmode="numeric"
+                maxlength="4"
+                required
+                [attr.aria-invalid]="!!erroDe('captcha_resposta')"
+                [attr.aria-describedby]="erroDe('captcha_resposta') ? 'captcha_resposta-erro' : 'captcha_resposta-dica'"
+              />
+              <button type="button" class="btn btn-secondary px-3" (click)="carregarDesafio()" aria-label="Trocar a pergunta de verificação" title="Trocar pergunta">
+                <lucide-icon [img]="icones.RotateCw" [size]="18" aria-hidden="true" />
+              </button>
+            </div>
+            @if (erroDe('captcha_resposta'); as msg) {
+              <p id="captcha_resposta-erro" class="field-error">{{ msg }}</p>
+            } @else if (desafioFalhou()) {
+              <p id="captcha_resposta-dica" class="field-error">Não foi possível carregar a pergunta. Use o botão ao lado para tentar de novo.</p>
+            } @else {
+              <p id="captcha_resposta-dica" class="field-hint">Confirma que o envio foi feito por uma pessoa.</p>
+            }
+          </div>
+
+          <!-- Honeypot anti-spam: invisível para pessoas e ignorado por leitores de tela. -->
+          <div class="absolute -left-[10000px] top-auto h-px w-px overflow-hidden" aria-hidden="true">
+            <label for="website">Não preencha este campo</label>
+            <input id="website" type="text" formControlName="website" tabindex="-1" autocomplete="off" />
+          </div>
+        </div>
+
+        <div class="mt-7 flex flex-col-reverse gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <p class="text-xs leading-relaxed text-muted">
+            Usamos seus dados apenas para responder a este contato.
+            <a routerLink="/privacidade" class="text-fg underline underline-offset-2 hover:text-accent-ink">Aviso de privacidade</a>.
+          </p>
+          <button type="submit" class="btn btn-primary shrink-0" [disabled]="enviando()">
+            @if (enviando()) {
+              <span class="anim-spin flex" aria-hidden="true"><lucide-icon [img]="icones.Loader2" [size]="18" /></span>
+              Enviando…
+            } @else {
+              Enviar mensagem
+              <lucide-icon [img]="icones.Send" [size]="16" aria-hidden="true" />
+            }
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</section>

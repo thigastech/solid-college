@@ -1,0 +1,99 @@
+{
+  "_aviso": "DADOS FICTÍCIOS PARA DEMONSTRAÇÃO. Nomes, descrições, especificações e imagens são ilustrativos e não representam produtos reais da marca. Substitua por dados reais antes de publicar.",
+  "produtos": [
+    {
+      "nome": "Engrenagem de dentes retos (demo)",
+      "categoria": "Componentes mecânicos",
+      "descricao": "Item demonstrativo. Engrenagem de dentes retos com furo central, exemplo de peça de reposição para mecanismos leves e protótipos de transmissão.",
+      "especificacao_tecnica": [
+        {"rotulo": "Processo", "valor": "FDM (exemplo)"},
+        {"rotulo": "Material", "valor": "PETG (exemplo)"},
+        {"rotulo": "Dentes", "valor": "18"}
+      ],
+      "imagem_url": "/static/produtos/engrenagem.svg",
+      "status": "ativo"
+    },
+    {
+      "nome": "Polia com flanges (demo)",
+      "categoria": "Componentes mecânicos",
+      "descricao": "Item demonstrativo. Polia com canal central e flanges laterais, ilustrando uma peça funcional produzida sob medida.",
+      "especificacao_tecnica": [
+        {"rotulo": "Processo", "valor": "FDM (exemplo)"},
+        {"rotulo": "Material", "valor": "PLA (exemplo)"}
+      ],
+      "imagem_url": "/static/produtos/polia.svg",
+      "status": "ativo"
+    },
+    {
+      "nome": "Suporte em L com furos (demo)",
+      "categoria": "Componentes mecânicos",
+      "descricao": "Item demonstrativo. Cantoneira de fixação com furos passantes, exemplo de suporte estrutural leve para montagens e bancadas.",
+      "especificacao_tecnica": [
+        {"rotulo": "Processo", "valor": "FDM (exemplo)"},
+        {"rotulo": "Furos", "valor": "4 passantes"}
+      ],
+      "imagem_url": "/static/produtos/suporte-l.svg",
+      "status": "ativo"
+    },
+    {
+      "nome": "Knob recartilhado (demo)",
+      "categoria": "Componentes mecânicos",
+      "descricao": "Item demonstrativo. Botão de controle com borda recartilhada para melhor pega e marcador de posição no topo.",
+      "especificacao_tecnica": [
+        {"rotulo": "Processo", "valor": "FDM (exemplo)"}
+      ],
+      "imagem_url": "/static/produtos/knob.svg",
+      "status": "ativo"
+    },
+    {
+      "nome": "Gabinete ventilado para eletrônica (demo)",
+      "categoria": "Gabinetes e invólucros",
+      "descricao": "Item demonstrativo. Caixa com tampa ventilada para acomodar placas e módulos eletrônicos, exemplo de invólucro desenvolvido sob demanda.",
+      "especificacao_tecnica": [
+        {"rotulo": "Processo", "valor": "FDM (exemplo)"},
+        {"rotulo": "Material", "valor": "ABS (exemplo)"},
+        {"rotulo": "Ventilação", "valor": "Aletas na tampa"}
+      ],
+      "imagem_url": "/static/produtos/gabinete.svg",
+      "status": "ativo"
+    },
+    {
+      "nome": "Vaso paramétrico torcido (demo)",
+      "categoria": "Decoração e design",
+      "descricao": "Item demonstrativo. Vaso com geometria paramétrica torcida, mostrando as camadas aparentes típicas da impressão 3D como elemento estético.",
+      "especificacao_tecnica": [
+        {"rotulo": "Processo", "valor": "FDM em modo vaso (exemplo)"},
+        {"rotulo": "Acabamento", "valor": "Camadas aparentes"}
+      ],
+      "imagem_url": "/static/produtos/vaso.svg",
+      "status": "ativo"
+    },
+    {
+      "nome": "Organizador colmeia (demo)",
+      "categoria": "Organização",
+      "descricao": "Item demonstrativo. Organizador modular de mesa com células hexagonais de alturas diferentes para canetas, ferramentas e pequenos componentes.",
+      "especificacao_tecnica": [
+        {"rotulo": "Processo", "valor": "FDM (exemplo)"},
+        {"rotulo": "Módulos", "valor": "Células hexagonais"}
+      ],
+      "imagem_url": "/static/produtos/organizador.svg",
+      "status": "ativo"
+    },
+    {
+      "nome": "Clipe para cabos (demo)",
+      "categoria": "Organização",
+      "descricao": "Item demonstrativo. Presilha em C para organizar cabos em mesas e painéis.",
+      "especificacao_tecnica": [],
+      "imagem_url": "/static/produtos/clipe.svg",
+      "status": "ativo"
+    },
+    {
+      "nome": "Miniatura arquitetônica (demo inativo)",
+      "categoria": "Protótipos",
+      "descricao": "Item demonstrativo INATIVO. Existe apenas para comprovar que produtos inativos não aparecem na API pública.",
+      "especificacao_tecnica": [],
+      "imagem_url": null,
+      "status": "inativo"
+    }
+  ]
+}
