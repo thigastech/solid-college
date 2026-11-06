@@ -8,6 +8,7 @@ from app.errors import ApiError
 from app.extensions import db
 from app.models import Contato
 from app.schemas import ContatoCreate
+from app.services.notificacao_service import notificar_novo_contato
 from app.services.produto_service import obter_ativo
 
 logger = logging.getLogger(__name__)
@@ -43,4 +44,5 @@ def criar_contato(dados: ContatoCreate) -> Contato:
     logger.info(
         "Contato registrado id=%s demanda=%s produto_id=%s", contato.id, contato.demanda, contato.produto_id
     )
+    notificar_novo_contato(contato)
     return contato

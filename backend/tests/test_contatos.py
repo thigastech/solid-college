@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 import pytest
 from sqlalchemy.exc import IntegrityError, OperationalError
 
@@ -193,3 +195,47 @@ def test_excluir_produto_com_contatos_e_bloqueado(client, produtos, contato_vali
         db.session.commit()
     db.session.rollback()
     assert db.session.query(Contato).count() == 1
+
+
+@pytest.fixture()
+def smtp_configurado(app):
+    app.config.update(
+        NOTIFICACAO_ATIVA=True,
+        NOTIFICACAO_DESTINO=["equipe@example.com"],
+        SMTP_HOST="smtp.example.com",
+        SMTP_PORTA=587,
+        SMTP_USUARIO="usuario",
+        SMTP_SENHA="senha",
+        SMTP_REMETENTE="site@example.com",
+        SMTP_STARTTLS=True,
+        SMTP_SSL=False,
+    )
+
+
+def test_notificacao_desligada_nao_abre_conexao(client, contato_valido):
+    with patch("app.services.notificacao_service.smtplib.SMTP") as smtp:
+        resp = client.post("/api/contatos", json=contato_valido)
+    assert resp.status_code == 201
+    smtp.assert_not_called()
+
+
+def test_envia_notificacao_quando_configurado(smtp_configurado, client, contato_valido):
+    with patch("app.services.notificacao_service.smtplib.SMTP") as smtp:
+        resp = client.post("/api/contatos", json=contato_valido)
+    assert resp.status_code == 201
+
+    smtp.assert_called_once_with("smtp.example.com", 587, timeout=10)
+    conexao = smtp.return_value.__enter__.return_value
+    conexao.starttls.assert_called_once()
+    conexao.login.assert_called_once_with("usuario", "senha")
+    msg = conexao.send_message.call_args.args[0]
+    assert msg["To"] == "equipe@example.com"
+    assert msg["Reply-To"] == "maria@example.com"
+    assert contato_valido["assunto"] in msg["Subject"]
+
+
+def test_falha_no_smtp_nao_derruba_criacao(smtp_configurado, client, contato_valido):
+    with patch("app.services.notificacao_service.smtplib.SMTP", side_effect=OSError("sem rede")):
+        resp = client.post("/api/contatos", json=contato_valido)
+    assert resp.status_code == 201
+    assert db.session.get(Contato, resp.get_json()["data"]["id"]) is not None

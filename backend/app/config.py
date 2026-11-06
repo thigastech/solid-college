@@ -56,6 +56,18 @@ class Config:
     ADMIN_FALHAS_LIMITE = _int("ADMIN_FALHAS_LIMITE", 10)
     ADMIN_FALHAS_JANELA = _int("ADMIN_FALHAS_JANELA", 900)
 
+    # Notificação por e-mail de novos contatos (desligada por padrão).
+    NOTIFICACAO_ATIVA = os.getenv("NOTIFICACAO_ATIVA", "0").strip().lower() in {"1", "true", "sim"}
+    NOTIFICACAO_DESTINO = _csv(os.getenv("NOTIFICACAO_DESTINO"), "")
+    SMTP_HOST = os.getenv("SMTP_HOST", "").strip()
+    SMTP_PORTA = _int("SMTP_PORTA", 587)
+    SMTP_USUARIO = os.getenv("SMTP_USUARIO", "").strip()
+    SMTP_SENHA = os.getenv("SMTP_SENHA", "")
+    SMTP_REMETENTE = os.getenv("SMTP_REMETENTE", "").strip()
+    SMTP_STARTTLS = os.getenv("SMTP_STARTTLS", "1").strip().lower() in {"1", "true", "sim"}
+    SMTP_SSL = os.getenv("SMTP_SSL", "0").strip().lower() in {"1", "true", "sim"}
+    SMTP_TIMEOUT = _int("SMTP_TIMEOUT", 10)
+
     BACKUP_DIR = os.getenv("BACKUP_DIR", str(BASE_DIR / "backups"))
     LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 
@@ -67,3 +79,4 @@ class TestConfig(Config):
     CONTATO_RATE_LIMIT = 1000
     CAPTCHA_ATIVO = False
     ADMIN_TOKEN = ""
+    NOTIFICACAO_ATIVA = False
