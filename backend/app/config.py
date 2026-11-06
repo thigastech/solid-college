@@ -72,6 +72,9 @@ class Config:
     SMTP_SSL = os.getenv("SMTP_SSL", "0").strip().lower() in {"1", "true", "sim"}
     SMTP_TIMEOUT = _int("SMTP_TIMEOUT", 10)
 
+    # Retenção (LGPD): `flask expurgar-contatos` apaga contatos mais antigos que isso.
+    CONTATO_RETENCAO_DIAS = max(_int("CONTATO_RETENCAO_DIAS", 730), 1)
+
     BACKUP_DIR = os.getenv("BACKUP_DIR", str(BASE_DIR / "backups"))
     LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 

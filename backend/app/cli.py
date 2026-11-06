@@ -1,20 +1,21 @@
-"""Comandos: `flask init-db`, `flask seed-demo`, `flask backup-db`, `flask admin-token`."""
+"""Comandos: `flask init-db`, `flask seed-demo`, `flask backup-db`, `flask admin-token`,
+`flask expurgar-contatos`."""
 from __future__ import annotations
 
 import json
 import secrets
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import click
 from flask import Flask, current_app
 from flask_migrate import upgrade
 from pydantic import ValidationError
-from sqlalchemy import select
+from sqlalchemy import delete, func, select
 
 from app.extensions import db
-from app.models import Produto
+from app.models import Contato, Produto
 from app.schemas import ProdutoSeed
 
 DADOS_DEMO = Path(__file__).resolve().parent.parent / "data" / "produtos_demo.json"
@@ -97,3 +98,27 @@ def registrar_comandos(app: Flask) -> None:
                 "ADMIN_TOKEN não configurado (ou com menos de 32 caracteres). Use `flask admin-token --novo`."
             )
         click.echo(token)
+
+    @app.cli.command("expurgar-contatos")
+    @click.option("--dias", type=click.IntRange(min=1), default=None,
+                  help="Apaga contatos com mais de N dias. Padrão: CONTATO_RETENCAO_DIAS.")
+    @click.option("--simular", is_flag=True, help="Só mostra quantos seriam apagados.")
+    @click.option("--sim", "confirmado", is_flag=True, help="Não pede confirmação (uso em agendadores).")
+    def expurgar_contatos(dias: int | None, simular: bool, confirmado: bool) -> None:
+        """Apaga definitivamente contatos antigos (retenção de dados pessoais, LGPD)."""
+        dias = dias or current_app.config["CONTATO_RETENCAO_DIAS"]
+        # O SQLite guarda a data sem fuso (em UTC); comparamos com um corte também sem fuso.
+        corte = (datetime.now(timezone.utc) - timedelta(days=dias)).replace(tzinfo=None)
+        filtro = Contato.data_envio < corte
+
+        total = db.session.scalar(select(func.count()).select_from(Contato).where(filtro)) or 0
+        descricao = f"{total} contato(s) com mais de {dias} dias (anteriores a {corte:%Y-%m-%d})"
+        if simular or total == 0:
+            click.echo(f"{descricao} seriam apagados." if simular else "Nenhum contato a expurgar.")
+            return
+        if not confirmado:
+            click.confirm(f"Apagar definitivamente {descricao}?", abort=True)
+
+        db.session.execute(delete(Contato).where(filtro))
+        db.session.commit()
+        click.echo(f"Expurgados {total} contato(s).")
