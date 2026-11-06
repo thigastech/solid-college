@@ -161,7 +161,8 @@ O backend Flask **não** vai para a Vercel: lá o SQLite seria apagado a cada no
 
 Configuração em [`frontend/vercel.json`](frontend/vercel.json):
 
-- Build `ng build --configuration production` (sem source maps, sem `onload` inline do CSS crítico) e saída `dist/frontend/browser`; fallback de SPA para `index.html`, exceto `/api/*` e `/static/*` (respondem 404 em vez de HTML).
+- Build `ng build --configuration production` (sem source maps, sem `onload` inline do CSS crítico) e saída `dist/frontend/browser`; fallback de SPA para `index.html`.
+  Na prática a Vercel também devolve o `index.html` em `/api/*` e `/static/*` (a exclusão do rewrite não teve efeito). Não há vazamento, porque só existe o build público, e o frontend trata a resposta como API indisponível. Quando a API existir, um rewrite `/api/(.*)` para ela, colocado antes do fallback, resolve.
 - Cabeçalhos de segurança em todas as respostas: CSP restrita (scripts só da própria origem mais o script de tema inline, liberado pelo hash SHA-256; sem `eval`; `frame-ancestors 'none'`), HSTS, `nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy` negando câmera, microfone, localização etc., e `Cross-Origin-Opener/Resource-Policy`.
 - Cache longo (`immutable`) para JS/CSS com hash e fontes; `index.html` sempre revalidado.
 
