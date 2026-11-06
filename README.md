@@ -175,6 +175,9 @@ node -e "const s=require('fs').readFileSync('frontend/src/index.html','utf8').ma
 Arquivos sensíveis: [`frontend/.vercelignore`](frontend/.vercelignore) impede o envio de `.env*`, chaves, bancos, logs e testes, e o *Root Directory* faz com que o build use apenas `frontend/`. O frontend não usa nenhuma variável secreta: **não cadastre `ADMIN_TOKEN`, `SMTP_SENHA` nem outros segredos do backend no projeto da Vercel.**
 Deployments de preview exigem login na Vercel (Vercel Authentication); a produção é pública.
 
+**Vercel Web Analytics (temporário):** `@vercel/analytics` é iniciado em `src/app/core/analytics.ts`, só no build de produção. Conta visitas sem cookies, usa o script da mesma origem (`/_vercel/insights/script.js`, já permitido pela CSP), não conta `/admin` e remove query string e âncora das URLs antes do envio. O aviso de privacidade menciona a coleta.
+A coleta só começa depois de ativar **Analytics** no painel do projeto na Vercel. Para remover: apague `iniciarAnalytics()` de `src/main.ts`, o arquivo `analytics.ts` (e o spec), a dependência `@vercel/analytics` e o trecho do aviso de privacidade.
+
 Quando a API estiver hospedada, aponte `apiBaseUrl` em `src/environments/environment.ts` para ela (ou adicione um rewrite `/api/(.*)` → API no `vercel.json`), inclua o domínio da API em `connect-src` e `img-src` da CSP e o domínio do site em `CORS_ORIGINS` no backend.
 
 ## Banco de dados

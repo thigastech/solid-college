@@ -48,6 +48,14 @@ import { SITE_CONFIG } from '../../core/config/site.config';
           </p>
         </section>
         <section>
+          <h2 class="text-lg font-semibold text-fg">Estatísticas de acesso</h2>
+          <p class="mt-2 text-muted">
+            Usamos o Vercel Web Analytics para contar visitas de forma agregada (páginas vistas, país, tipo de
+            dispositivo e navegador). Ele não usa cookies, não identifica você individualmente e não recebe
+            parâmetros da URL nem dados do formulário. A área administrativa não é contabilizada.
+          </p>
+        </section>
+        <section>
           <h2 class="text-lg font-semibold text-fg">Seus direitos</h2>
           <p class="mt-2 text-muted">
             Você pode pedir acesso, correção ou exclusão dos seus dados.
