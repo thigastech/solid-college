@@ -1,0 +1,29 @@
+# Nada disso é necessário para o build do site; nunca deve ir para a Vercel.
+node_modules
+.angular
+dist
+coverage
+tmp
+out-tsc
+
+# Segredos e chaves
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+
+# Dados locais e logs
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+*.log
+backups
+
+# Testes (não fazem parte do build de produção)
+**/*.spec.ts
+karma.conf.js
+tsconfig.spec.json

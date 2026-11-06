@@ -154,6 +154,28 @@ Para produção, rode o Flask atrás de um servidor WSGI (ex.: `waitress` no Win
 Com isso o Flask aplica o `ProxyFix` do Werkzeug e lê o IP real do visitante (e o esquema/host) de `X-Forwarded-For`/`X-Forwarded-Proto`/`X-Forwarded-Host`, o que é necessário para o limite de envios por IP e o bloqueio de tentativas do admin funcionarem por visitante, e não para o proxy inteiro.
 Deixe `TRUSTED_PROXIES=0` (padrão) quando a API recebe conexões diretamente: nesse caso os cabeçalhos `X-Forwarded-*` são ignorados, porque qualquer cliente poderia falsificá-los para burlar os limites.
 
+### 5. Deploy do frontend na Vercel
+
+O site Angular é publicado na Vercel como **site estático**, a partir de `frontend/` (projeto com *Root Directory* `frontend`, ligado a este repositório). Cada push em `main` publica em produção; os outros branches geram previews.
+O backend Flask **não** vai para a Vercel: lá o SQLite seria apagado a cada nova instância e os contatos se perderiam. Até a API ter hospedagem própria, o catálogo e o formulário mostram o estado de erro previsto e a vitrine mostra a marca.
+
+Configuração em [`frontend/vercel.json`](frontend/vercel.json):
+
+- Build `ng build --configuration production` (sem source maps, sem `onload` inline do CSS crítico) e saída `dist/frontend/browser`; fallback de SPA para `index.html`, exceto `/api/*` e `/static/*` (respondem 404 em vez de HTML).
+- Cabeçalhos de segurança em todas as respostas: CSP restrita (scripts só da própria origem mais o script de tema inline, liberado pelo hash SHA-256; sem `eval`; `frame-ancestors 'none'`), HSTS, `nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy` negando câmera, microfone, localização etc., e `Cross-Origin-Opener/Resource-Policy`.
+- Cache longo (`immutable`) para JS/CSS com hash e fontes; `index.html` sempre revalidado.
+
+**Se alterar o script inline de `src/index.html`**, recalcule o hash e atualize a CSP no `vercel.json`; senão o navegador bloqueia o script:
+
+```bash
+node -e "const s=require('fs').readFileSync('frontend/src/index.html','utf8').match(/<script>([\s\S]*?)<\/script>/)[1];console.log('sha256-'+require('crypto').createHash('sha256').update(s).digest('base64'))"
+```
+
+Arquivos sensíveis: [`frontend/.vercelignore`](frontend/.vercelignore) impede o envio de `.env*`, chaves, bancos, logs e testes, e o *Root Directory* faz com que o build use apenas `frontend/`. O frontend não usa nenhuma variável secreta: **não cadastre `ADMIN_TOKEN`, `SMTP_SENHA` nem outros segredos do backend no projeto da Vercel.**
+Deployments de preview exigem login na Vercel (Vercel Authentication); a produção é pública.
+
+Quando a API estiver hospedada, aponte `apiBaseUrl` em `src/environments/environment.ts` para ela (ou adicione um rewrite `/api/(.*)` → API no `vercel.json`), inclua o domínio da API em `connect-src` e `img-src` da CSP e o domínio do site em `CORS_ORIGINS` no backend.
+
 ## Banco de dados
 
 - Arquivo padrão: `backend/instance/catalogo.db`. Para mudar, use `DATABASE_URL` (ex.: `sqlite:///C:/dados/catalogo.db`).
