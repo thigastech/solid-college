@@ -14,10 +14,10 @@ Backend monolítico em camadas:
 | --- | --- | --- |
 | Rotas | `app/routes` | HTTP: ler request, chamar schema e serviço, montar resposta |
 | Esquemas | `app/schemas` | Validação de entrada (Pydantic estrito) e formato público de saída |
-| Serviços | `app/services` | Regras: só produtos ativos, verificação do produto, transação/rollback, rate limit |
+| Serviços | `app/services` | Regras: só produtos ativos, verificação do produto, transação/rollback, rate limit, busca sem acentos, notificação por e-mail |
 | Modelos | `app/models` | Mapeamento ORM |
 | Configuração | `app/config.py`, `.env` | Tudo que varia por ambiente |
-| Inicialização | `app/cli.py`, `migrations/` | Esquema (Alembic), seed demo, backup |
+| Inicialização | `app/cli.py`, `migrations/` | Esquema (Alembic), seed demo, backup, token do admin, expurgo de contatos antigos |
 | Erros | `app/errors.py` | Contrato único de erro para todas as rotas |
 
 Frontend Angular 17 com componentes standalone:
@@ -74,9 +74,14 @@ Não há entidade de cliente separada.
 - **Flask-SQLAlchemy + Flask-Migrate:** a sessão é gerenciada por request (escopo da app) e o esquema evolui com Alembic (`render_as_batch=True` para `ALTER TABLE` no SQLite). `flask init-db` aplica as migrações. Os testes usam `create_all` em SQLite em memória.
 - **Pydantic estrito:** `StrictStr`/`StrictInt` evitam coerções silenciosas (`"1"` → 1, `true` → 1), e `extra="forbid"` rejeita campos inesperados, o que também impede coletar dados não previstos, como CPF. `str_strip_whitespace` remove espaços nas pontas antes dos limites.
 - **SQL parametrizado:** todas as consultas usam o ORM. O `LIKE` da busca escapa `%`, `_` e `\`.
+- **Busca sem acentos no SQLite:** o SQLite não tem collation que ignore acentos. A cada conexão, `app/extensions.py` registra a função `normalizar` (Python: decomposição NFKD, remoção das marcas combinantes e `casefold`), e a busca compara `normalizar(coluna) LIKE normalizar(termo)`.
+  A mesma função atende o catálogo (nome e descrição) e o admin (nome, e-mail e assunto), e o resultado coincide com a busca do frontend. O custo é uma varredura completa sem índice, aceitável para o volume do MVP; num banco maior, a alternativa é uma coluna normalizada e indexada ou FTS5.
   Não usamos “sanitização” por regex: a proteção contra XSS vem da interpolação do Angular (escapa por padrão; nenhum `innerHTML` é usado).
 - **Sucesso só após gravação:** o serviço faz `commit` e, só então, a rota retorna 201. Qualquer `SQLAlchemyError` resulta em `rollback` e em 500 genérico.
-- **Antispam proporcional:** honeypot (`website`) + limite em memória por IP + limite do corpo (16 KB). Sem CAPTCHA, para não prejudicar usuários nem adicionar serviços externos.
+- **Antispam proporcional:** honeypot (`website`) + limite em memória por IP + limite do corpo (16 KB) + captcha próprio (veja abaixo), sem serviços externos.
+- **IP real atrás de proxy:** o `ProxyFix` só é aplicado quando `TRUSTED_PROXIES` > 0 e confia em exatamente esse número de saltos de `X-Forwarded-*`. Com 0 (padrão), o cabeçalho é ignorado: confiar nele sem proxy permitiria que qualquer cliente trocasse de “IP” a cada requisição e escapasse do rate limit e do bloqueio do admin.
+- **Notificação por e-mail de melhor esforço:** `notificacao_service` usa só o `smtplib` da biblioteca padrão (sem dependência nova) e é chamado depois do `commit`. Qualquer exceção é capturada e logada pelo tipo, então o contato nunca deixa de ser salvo nem a API deixa de responder 201 por causa do SMTP.
+  O envio é síncrono, limitado por `SMTP_TIMEOUT`; uma fila (thread/worker) com novas tentativas fica para quando o volume justificar.
 - **Logs sem dados pessoais:** registra-se apenas `id` e `produto_id` do contato. Exceções são logadas pelo tipo.
 - **Imagens servidas pelo Flask** (`/static/produtos`): o produto e sua imagem ficam juntos no backend.
 - **Busca no cliente:** o catálogo é pequeno. Carregar uma vez e filtrar localmente dá resposta instantânea, sem debounce nem tráfego extra. A API mantém `busca` e `categoria` para escalar depois.
@@ -130,6 +135,12 @@ Não há entidade de cliente separada.
 - Respostas sem detalhes internos. Cabeçalhos `X-Content-Type-Options: nosniff`, `Referrer-Policy` e `Cache-Control: no-store` em JSON.
 - O aviso de privacidade (`/privacidade`) explica finalidade, dados, uso e direitos. O canal de privacidade só aparece se `emailPrivacidade` for configurado.
   **O texto precisa ser revisado pelo responsável pelo tratamento dos dados**, que também deve definir o prazo de retenção. Não há afirmação de conformidade automática.
+- **Retenção:** `flask expurgar-contatos` apaga definitivamente contatos com `data_envio` anterior a `CONTATO_RETENCAO_DIAS` (padrão 730). Tem `--simular`, pede confirmação por padrão e aceita `--sim` para rodar em agendadores. Backups antigos precisam seguir a mesma política.
+- **Notificação por e-mail:** quando ativada, o aviso leva nome, e-mail, telefone e mensagem ao(s) destino(s) configurado(s). Use caixas da própria empresa e conexão cifrada (`SMTP_STARTTLS` ou `SMTP_SSL`); essas cópias ficam fora do expurgo automático. Os logs do envio não contêm dados pessoais (só o `id`).
+
+## Integração contínua
+
+`.github/workflows/ci.yml` roda em push e pull request para `main`, com dois jobs independentes no `ubuntu-latest`: backend (Python 3.12, cache de pip, `pytest`) e frontend (Node 20, `npm ci`, `ng test --watch=false --browsers=ChromeHeadlessCI`). O badge no README aponta para esse workflow.
 
 ## Formulário de contato: captcha, demanda e telefone
 

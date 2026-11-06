@@ -46,7 +46,7 @@ Parâmetros opcionais (query string):
 | Parâmetro | Regra |
 | --- | --- |
 | `categoria` | igualdade sem diferenciar maiúsculas; máx. 80 caracteres |
-| `busca` | trecho do nome **ou** da descrição (`LIKE`, curingas `%`/`_` escapados); máx. 100 caracteres |
+| `busca` | trecho do nome **ou** da descrição, sem diferenciar acentos nem maiúsculas (`organizacao` encontra “Organização” e vice-versa); curingas `%`/`_` escapados; máx. 100 caracteres |
 
 `meta.categorias` traz todas as categorias com produtos ativos, independentemente do filtro (usado para montar os filtros da interface).
 
@@ -169,6 +169,9 @@ curl -X POST http://127.0.0.1:5000/api/contatos \
 
 A resposta não devolve nome, e-mail, telefone nem mensagem (minimização).
 
+Com `NOTIFICACAO_ATIVA=1` (e SMTP configurado), o servidor envia um aviso por e-mail a `NOTIFICACAO_DESTINO` **depois** do `COMMIT`.
+O envio não altera o contrato: uma falha de SMTP é só registrada no log e a resposta continua 201. Como o envio é síncrono, um SMTP lento pode atrasar a resposta até `SMTP_TIMEOUT` segundos.
+
 **422: validação**
 
 ```json
@@ -191,7 +194,7 @@ Outras mensagens por campo: `"Campo obrigatório."`, `"Use no máximo N caracter
 { "success": false, "message": "JSON inválido ou malformado." }
 ```
 
-**429: limite de envios** (padrão: 5 por IP a cada 600 s; `CONTATO_RATE_LIMIT` / `CONTATO_RATE_WINDOW`)
+**429: limite de envios** (padrão: 5 por IP a cada 600 s; `CONTATO_RATE_LIMIT` / `CONTATO_RATE_WINDOW`; sobre o IP considerado, veja [IP do cliente](#ip-do-cliente-e-proxy-reverso))
 
 ```json
 { "success": false, "message": "Muitas mensagens em pouco tempo. Aguarde alguns minutos e tente novamente." }
@@ -212,7 +215,7 @@ O token é comparado em tempo constante. Tentativas inválidas por IP são limit
 | --- | --- |
 | `pagina` | inteiro ≥ 1 (padrão 1) |
 | `por_pagina` | 1–100 (padrão 20) |
-| `busca` | trecho do nome, e-mail ou assunto; máx. 100 caracteres |
+| `busca` | trecho do nome, e-mail ou assunto, sem diferenciar acentos nem maiúsculas; máx. 100 caracteres |
 | `produto_id` | inteiro > 0; filtra pelo produto (ativo ou inativo) |
 
 Parâmetros desconhecidos ou fora das regras → 422. Ordenação: mais recentes primeiro.
@@ -267,6 +270,13 @@ Sem token ou token errado (401):
 ```json
 { "success": true, "data": { "status": "ok" } }
 ```
+
+## IP do cliente e proxy reverso
+
+O limite de envios de contato e o bloqueio de tentativas inválidas do admin contam por IP.
+
+- `TRUSTED_PROXIES=0` (padrão): vale o IP da conexão; `X-Forwarded-For` e demais `X-Forwarded-*` são ignorados, para que um cliente não falsifique o IP.
+- `TRUSTED_PROXIES=N` (N ≥ 1): a aplicação usa o `ProxyFix` do Werkzeug e confia nos últimos N saltos de `X-Forwarded-For`, `X-Forwarded-Proto` e `X-Forwarded-Host`. Use o número exato de proxies na frente da API (normalmente 1).
 
 ## CORS
 

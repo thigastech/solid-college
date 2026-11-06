@@ -1,5 +1,7 @@
 # SOLID — catálogo de peças impressas em 3D (MVP)
 
+[![CI](https://github.com/thigastech/solid-college/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/thigastech/solid-college/actions/workflows/ci.yml)
+
 Landing page com catálogo de produtos impressos em 3D e formulário de contato/orçamento.
 O objetivo é **apresentar o portfólio e gerar contatos**. Não há carrinho, checkout, pagamento, frete nem contas de cliente.
 Há uma **área administrativa somente leitura** (`/admin`) para consultar os contatos recebidos, protegida por token.
@@ -31,10 +33,10 @@ SOLID/
 │   │   ├── config.py          # configuração via variáveis de ambiente
 │   │   ├── extensions.py      # db, migrate, cors + PRAGMA foreign_keys=ON
 │   │   ├── errors.py          # contrato único de erro + tradução dos erros do Pydantic
-│   │   ├── cli.py             # flask init-db | seed-demo | backup-db | admin-token
+│   │   ├── cli.py             # flask init-db | seed-demo | backup-db | admin-token | expurgar-contatos
 │   │   ├── models/            # Produto, Contato (SQLAlchemy)
 │   │   ├── schemas/           # Pydantic: contato, produto e admin (filtro/saída da consulta de contatos)
-│   │   ├── services/          # regras de negócio + rate limit
+│   │   ├── services/          # regras de negócio, rate limit e notificação por e-mail
 │   │   ├── routes/            # /api/produtos, /api/contatos, /api/admin/contatos, /api/health
 │   │   └── static/produtos/   # ilustrações SVG dos produtos demo
 │   ├── data/produtos_demo.json
@@ -50,6 +52,7 @@ SOLID/
 │       ├── shared/            # utilitários
 │       └── features/          # home (hero, vitrine, diferenciais), catalogo, contato, privacidade, admin
 ├── tools/gerar_ilustracoes.py # gera os SVGs isométricos dos produtos demo
+├── .github/workflows/ci.yml   # testes do backend e do frontend no GitHub Actions
 └── docs/
 ```
 
@@ -134,6 +137,8 @@ Se o Karma não conseguir iniciar o Chrome (ambientes restritos), rode-o sem nav
 KARMA_SEM_NAVEGADOR=1 npx ng test        # PowerShell: $env:KARMA_SEM_NAVEGADOR=1; npx ng test
 ```
 
+**Integração contínua:** o workflow [`.github/workflows/ci.yml`](.github/workflows/ci.yml) roda as duas suítes no GitHub Actions a cada push e pull request para `main`: backend com Python 3.12 (`pytest`) e frontend com Node 20 (`ng test` no `ChromeHeadlessCI`). O badge no topo deste arquivo mostra o resultado mais recente.
+
 ### 4. Build de produção do frontend
 
 ```bash
@@ -145,6 +150,10 @@ Em produção, `environment.ts` usa `apiBaseUrl: ''`, ou seja, a API deve ser se
 Se a API ficar em outro domínio, ajuste `apiBaseUrl` e inclua o domínio do site em `CORS_ORIGINS`.
 Para produção, rode o Flask atrás de um servidor WSGI (ex.: `waitress` no Windows ou `gunicorn` no Linux) com `FLASK_DEBUG=0` e `APP_ENV=production`.
 
+**Atrás de proxy reverso** (nginx, balanceador etc.), defina `TRUSTED_PROXIES` com o número de proxies na frente da aplicação (normalmente `1`).
+Com isso o Flask aplica o `ProxyFix` do Werkzeug e lê o IP real do visitante (e o esquema/host) de `X-Forwarded-For`/`X-Forwarded-Proto`/`X-Forwarded-Host`, o que é necessário para o limite de envios por IP e o bloqueio de tentativas do admin funcionarem por visitante, e não para o proxy inteiro.
+Deixe `TRUSTED_PROXIES=0` (padrão) quando a API recebe conexões diretamente: nesse caso os cabeçalhos `X-Forwarded-*` são ignorados, porque qualquer cliente poderia falsificá-los para burlar os limites.
+
 ## Banco de dados
 
 - Arquivo padrão: `backend/instance/catalogo.db`. Para mudar, use `DATABASE_URL` (ex.: `sqlite:///C:/dados/catalogo.db`).
@@ -154,6 +163,20 @@ Para produção, rode o Flask atrás de um servidor WSGI (ex.: `waitress` no Win
 - **Backup:** `flask backup-db` gera uma cópia consistente (API de backup do SQLite, segura mesmo com a aplicação rodando) em `backend/backups/catalogo-AAAAMMDD-HHMMSS.db` (pasta configurável via `BACKUP_DIR`).
   Para restaurar, pare a aplicação e substitua o arquivo do banco pela cópia.
 - Não exclua produtos com contatos associados: a chave estrangeira usa `ON DELETE RESTRICT`. **Desative** o produto (`status = 'inativo'`); ele some da API pública e o histórico de contatos é preservado.
+
+### Retenção de contatos (LGPD)
+
+`flask expurgar-contatos` apaga **definitivamente** os contatos mais antigos que o prazo de retenção, definido em `CONTATO_RETENCAO_DIAS` (padrão 730 dias, cerca de 2 anos). O prazo deve ser decidido pelo responsável pelo tratamento dos dados.
+
+```bash
+flask expurgar-contatos --simular      # só informa quantos seriam apagados
+flask expurgar-contatos                # pede confirmação antes de apagar
+flask expurgar-contatos --dias 365     # usa outro prazo nesta execução
+flask expurgar-contatos --sim          # sem confirmação, para agendadores
+```
+
+A data de corte é calculada em UTC sobre `data_envio`. Agende o comando (por exemplo, diariamente pelo Agendador de Tarefas do Windows ou pelo `cron`) com `--sim`.
+Lembre que backups antigos (`flask backup-db`) continuam guardando os contatos expurgados: aplique a eles a mesma política.
 
 ### Gerenciar produtos (sem painel administrativo)
 
@@ -198,6 +221,11 @@ Imagens podem ser colocadas em `backend/app/static/produtos/` (referenciadas com
 - Diálogo de detalhes (`<dialog>` nativo): imagem ampliada, descrição completa, especificações (ou “Não informado”), foco no botão de fechar, Escape/backdrop fecham e o foco volta ao gatilho.
 - “Solicitar orçamento” em card ou diálogo: seleciona o produto, rola até o formulário, preenche “Produto de interesse” e sugere o assunto. A seleção é compartilhada (signal) entre catálogo e formulário.
 - Formulário com validação no frontend (obrigatórios, e-mail, limites, mensagens junto aos campos, `aria-invalid`/`aria-describedby`, foco no primeiro campo inválido), botão desabilitado e indicador durante o envio, sucesso **somente após HTTP 201**, erro preservando os dados e exibindo erros de campo vindos do servidor.
+- Busca da API (`GET /api/produtos?busca=` e a busca do admin) sem diferenciar acentos e maiúsculas, como a do frontend.
+- Aviso opcional por e-mail (SMTP) a cada novo contato, sem impedir o registro se o envio falhar.
+- Comando `flask expurgar-contatos` para aplicar o prazo de retenção dos contatos (LGPD).
+- IP real do visitante atrás de proxy reverso (`TRUSTED_PROXIES` + `ProxyFix`).
+- Testes automatizados no GitHub Actions a cada push e pull request para `main`.
 - Backend com validação Pydantic estrita, contrato de erro único, verificação de produto ativo, transação com rollback, honeypot e limite de envios por IP, CORS restrito, limite de tamanho do corpo e logs sem dados pessoais.
 - Aviso de privacidade em `/privacidade`. Canal de contato e e-mail de privacidade só aparecem se configurados.
 - Animações apenas em CSS, desativadas com `prefers-reduced-motion`.
@@ -205,9 +233,8 @@ Imagens podem ser colocadas em `backend/app/static/produtos/` (referenciadas com
 ## Testes executados nesta entrega
 
 - **Backend:** `pytest`: **85 testes aprovados**. Cobrem: captcha (acerto, erro, reuso, expiração, token forjado), demanda, telefone, listagem só de ativos, busca, filtro por categoria, 404 para produto inexistente ou inativo, criação válida e persistência, e-mail inválido, campos ausentes, vazios, longos e com tipo errado, campos extras, JSON malformado, content-type, corpo grande, honeypot, rate limit, falha de banco (500 sem detalhes e com rollback), ausência de listagem pública de contatos, `RESTRICT` na exclusão, CORS, seed idempotente e bloqueado em produção, e a área administrativa (desativada sem token ou com token curto, 401 para token ausente ou errado, bloqueio 429 após falhas, ordenação, paginação, busca, filtro por produto, parâmetros inválidos, CORS com `Authorization` e log sem dados pessoais).
-- **Frontend:** Karma/Jasmine: **37 de 39 testes aprovados**, executados por partes; os 2 de `tema.service.spec.ts` não terminaram no painel de navegador usado, que perde a conexão ao rodá-los. Cobrem: estados do catálogo (carregando, erro com nova tentativa, lista e vazio), pesquisa, filtro, seleção de produto, validação, estado de envio e bloqueio de duplicidade, sucesso após 201, erro com preservação dos dados, erros de campo do servidor, pré-preenchimento pelo catálogo, vitrine (carregamento, navegação circular, miniaturas, slides inativos ocultos, avanço automático e pausa, detalhes e orçamento, falha sem produtos inventados), tema (escolha salva e preferência do sistema) e área administrativa (validação do token, 401, cabeçalho `Authorization`, sessão só na aba, expansão e `mailto`, busca com atraso e saída).
-  Neste ambiente, o Chrome iniciado pelo Karma não conectou; os testes foram executados com `KARMA_SEM_NAVEGADOR=1` e um navegador conectado manualmente.
-- **Verificação manual no navegador (esta etapa):** temas claro e escuro na home e no admin; vitrine abrindo o diálogo de detalhes; login no admin com token errado e correto; busca e filtro por produto; layout em 375 e 1024 px sem rolagem horizontal.
+  Depois dessa contagem foram adicionados testes de busca sem acentos (produtos e admin), notificação por e-mail (envio, desligada e falha de SMTP sem afetar o 201), `ProxyFix` (com e sem `TRUSTED_PROXIES`) e `flask expurgar-contatos`; eles rodam no CI.
+- **Frontend:** Karma/Jasmine: **40 de 40 testes aprovados** no Chrome headless (`--browsers=ChromeHeadlessCI`), localmente e no CI. Os testes de tema substituem `document.startViewTransition` por um dublê: uma View Transition real derruba o Chrome headless sem GPU e o Karma perde a conexão. Cobrem: estados do catálogo (carregando, erro com nova tentativa, lista e vazio), pesquisa, filtro, seleção de produto, validação, estado de envio e bloqueio de duplicidade, sucesso após 201, erro com preservação dos dados, erros de campo do servidor, pré-preenchimento pelo catálogo, vitrine (carregamento, navegação circular, miniaturas, slides inativos ocultos, avanço automático e pausa, detalhes e orçamento, falha sem produtos inventados), tema (escolha salva, troca com e sem View Transitions e preferência do sistema) e área administrativa (validação do token, 401, cabeçalho `Authorization`, sessão só na aba, expansão e `mailto`, busca com atraso e saída).- **Verificação manual no navegador (esta etapa):** temas claro e escuro na home e no admin; vitrine abrindo o diálogo de detalhes; login no admin com token errado e correto; busca e filtro por produto; layout em 375 e 1024 px sem rolagem horizontal.
 - **Verificação manual anterior:** fluxo completo catálogo → detalhes → orçamento → gravação no SQLite (com `produto_id`), API desligada (mensagens de erro e dados preservados), menu mobile e Escape, navegação por âncoras a partir de `/privacidade`, e ausência de rolagem horizontal em 320, 375, 547, 768 e 1280 px.
 
 ## Canais e formulário de contato
@@ -215,6 +242,21 @@ Imagens podem ser colocadas em `backend/app/static/produtos/` (referenciadas com
 - **WhatsApp e Instagram:** preencha `whatsappNumero` (DDI + DDD + número) e `instagramUrl` em `frontend/src/app/core/config/site.config.ts`. Sem número, o botão flutuante do WhatsApp leva ao formulário de contato; sem URL, o ícone do Instagram não aparece.
 - **Captcha:** pergunta de soma validada no servidor, sem serviços de terceiros (`GET /api/contatos/captcha`). Variáveis: `CAPTCHA_ATIVO`, `CAPTCHA_SEGREDO` e `CAPTCHA_VALIDADE`. Em produção com mais de um processo, defina `CAPTCHA_SEGREDO`.
 - **Demanda e telefone:** a demanda é obrigatória; o telefone é opcional. Depois de atualizar o código, rode `flask db upgrade` para aplicar as migrações.
+- **Aviso por e-mail de novos contatos:** desligado por padrão. Para ativar, configure no `backend/.env`:
+
+  | Variável | Uso |
+  | --- | --- |
+  | `NOTIFICACAO_ATIVA` | `1` liga o envio |
+  | `NOTIFICACAO_DESTINO` | e-mails que recebem o aviso, separados por vírgula |
+  | `SMTP_HOST` / `SMTP_PORTA` | servidor SMTP (padrão porta 587) |
+  | `SMTP_USUARIO` / `SMTP_SENHA` | credenciais; sem usuário, não faz login |
+  | `SMTP_REMETENTE` | remetente; se vazio, usa `SMTP_USUARIO` ou o primeiro destino |
+  | `SMTP_STARTTLS` / `SMTP_SSL` | `587` + `SMTP_STARTTLS=1` (padrão) ou `465` + `SMTP_SSL=1` |
+  | `SMTP_TIMEOUT` | tempo limite da conexão, em segundos (padrão 10) |
+
+  Só envia com `NOTIFICACAO_ATIVA=1`, `SMTP_HOST` e ao menos um destino. O e-mail traz os dados do contato, com `Reply-To` apontando para o cliente (basta responder).
+  O envio acontece depois da gravação e é de melhor esforço: se o SMTP falhar, o contato continua salvo, a API responde 201 normalmente e o log registra apenas o `id` do contato e o tipo do erro.
+  O envio é síncrono, então um SMTP lento atrasa a resposta do formulário até `SMTP_TIMEOUT`.
 
 ## Versionamento e dados sensíveis
 
@@ -230,10 +272,10 @@ Se um segredo for commitado por engano, **troque-o** (`flask admin-token --novo`
 
 - A área administrativa só **consulta** contatos. Produtos continuam sendo gerenciados via banco e shell.
 - Autenticação administrativa por um único token compartilhado, sem usuários individuais nem trilha de auditoria por pessoa. Troque o token se ele vazar e use HTTPS em produção.
-- Não há envio de e-mail ou notificação quando um contato chega.
-- O rate limit é em memória: zera ao reiniciar e não é compartilhado entre processos. Atrás de proxy, configure `ProxyFix` para obter o IP real.
+- O rate limit (e os nonces do captcha) ficam em memória: zeram ao reiniciar e não são compartilhados entre processos.
+- O aviso por e-mail é síncrono e sem fila nem nova tentativa: se o SMTP falhar, aquele aviso se perde (o contato continua salvo e visível no admin).
 - A busca do catálogo é feita no cliente sobre a lista completa (adequada a dezenas ou centenas de itens). A API já aceita `?busca=` e `?categoria=` para quando o catálogo crescer.
-- A busca do backend (`LIKE`) não ignora acentos; a do frontend ignora.
+- A busca sem acentos da API usa uma função Python registrada no SQLite, que não aproveita índices (varredura completa; adequado ao volume do MVP).
 - Imagens são ilustrações SVG geradas, não fotos. A meta de resposta visual em menos de 2 s não foi medida formalmente.
 - O aviso de privacidade é um texto-base: **precisa ser revisado pelo responsável pelo tratamento dos dados** e não garante conformidade com a LGPD.
-- Não há política de retenção ou exclusão automática de contatos; ela deve ser definida pelo responsável.
+- O expurgo de contatos antigos existe (`flask expurgar-contatos`), mas não roda sozinho: precisa ser agendado, e o prazo de retenção deve ser definido pelo responsável.
