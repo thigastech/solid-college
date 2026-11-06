@@ -144,3 +144,10 @@ def test_nao_registra_conteudo_dos_contatos_no_log(contatos, client, auth, caplo
     assert "cliente5@example.com" not in caplog.text
     assert "Mensagem número" not in caplog.text
     assert "Consulta administrativa" in caplog.text
+
+
+@pytest.mark.parametrize("termo", ["orcamento", "ORÇAMENTO", "duvida geral"])
+def test_busca_de_contatos_ignora_acentos(contatos, client, auth, termo):
+    corpo = client.get(URL, query_string={"busca": termo}, headers=auth).get_json()
+    esperado = 2 if termo.startswith("d") else 3
+    assert corpo["meta"]["total"] == esperado

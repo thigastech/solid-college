@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import unicodedata
+
 from sqlalchemy import func, or_, select
 
 from app.extensions import db
@@ -11,6 +13,23 @@ def escapar_like(texto: str) -> str:
     return texto.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
 
 
+def normalizar(texto: str | None) -> str | None:
+    """Remove acentos e converte para minúsculas ("Organização" -> "organizacao")."""
+    if texto is None:
+        return None
+    decomposto = unicodedata.normalize("NFKD", texto)
+    return "".join(c for c in decomposto if not unicodedata.combining(c)).casefold()
+
+
+def padrao_busca(texto: str) -> str:
+    """Padrão LIKE (com escape) já normalizado, para comparar com func.normalizar(coluna)."""
+    return f"%{escapar_like(normalizar(texto))}%"
+
+
+def contem(coluna, padrao: str):
+    return func.normalizar(coluna).like(padrao, escape="\\")
+
+
 def listar_ativos(filtro: ProdutoFiltro) -> list[Produto]:
     consulta = select(Produto).where(Produto.status == StatusProduto.ATIVO.value)
 
@@ -18,11 +37,11 @@ def listar_ativos(filtro: ProdutoFiltro) -> list[Produto]:
         consulta = consulta.where(func.lower(Produto.categoria) == filtro.categoria.lower())
 
     if filtro.busca:
-        padrao = f"%{escapar_like(filtro.busca)}%"
+        padrao = padrao_busca(filtro.busca)
         consulta = consulta.where(
             or_(
-                Produto.nome.ilike(padrao, escape="\\"),
-                Produto.descricao.ilike(padrao, escape="\\"),
+                contem(Produto.nome, padrao),
+                contem(Produto.descricao, padrao),
             )
         )
 

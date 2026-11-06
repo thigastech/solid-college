@@ -1,3 +1,8 @@
+import pytest
+
+from app.services.produto_service import normalizar
+
+
 def test_lista_apenas_produtos_ativos(client, produtos):
     resp = client.get("/api/produtos")
     assert resp.status_code == 200
@@ -70,3 +75,19 @@ def test_cors_restrito_a_origem_configurada(client, produtos):
 
     negado = client.get("/api/produtos", headers={"Origin": "https://site-malicioso.example"})
     assert "Access-Control-Allow-Origin" not in negado.headers
+
+
+@pytest.mark.parametrize("termo", ["peca decorativa", "PEÇA DECORATIVA", "pEçA"])
+def test_busca_ignora_acentos_e_caixa(client, produtos, termo):
+    corpo = client.get("/api/produtos", query_string={"busca": termo}).get_json()
+    assert [p["nome"] for p in corpo["data"]] == ["Vaso torcido"]
+
+
+def test_busca_com_acento_encontra_texto_sem_acento(client, produtos):
+    corpo = client.get("/api/produtos", query_string={"busca": "engrenágem"}).get_json()
+    assert [p["nome"] for p in corpo["data"]] == ["Engrenagem reta"]
+
+
+def test_normalizar():
+    assert normalizar("Organização") == normalizar("organizacao") == "organizacao"
+    assert normalizar(None) is None

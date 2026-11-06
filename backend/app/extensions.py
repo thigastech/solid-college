@@ -24,3 +24,8 @@ def _habilitar_chaves_estrangeiras(dbapi_connection, _connection_record) -> None
         cursor = dbapi_connection.cursor()
         cursor.execute("PRAGMA foreign_keys=ON")
         cursor.close()
+
+        # Permite buscas que ignoram acentos e caixa: normalizar(coluna) LIKE normalizar(termo).
+        from app.services.produto_service import normalizar
+
+        dbapi_connection.create_function("normalizar", 1, normalizar, deterministic=True)

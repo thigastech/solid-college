@@ -8,19 +8,19 @@ from sqlalchemy.orm import joinedload
 from app.extensions import db
 from app.models import Contato, Produto
 from app.schemas.admin import ContatoAdminFiltro
-from app.services.produto_service import escapar_like
+from app.services.produto_service import contem, padrao_busca
 
 
 def listar_contatos(filtro: ContatoAdminFiltro) -> tuple[list[Contato], dict[str, int]]:
     """Contatos mais recentes primeiro, com paginação e busca por nome, e-mail ou assunto."""
     condicoes = []
     if filtro.busca:
-        padrao = f"%{escapar_like(filtro.busca)}%"
+        padrao = padrao_busca(filtro.busca)
         condicoes.append(
             or_(
-                Contato.nome_cliente.ilike(padrao, escape="\\"),
-                Contato.email_cliente.ilike(padrao, escape="\\"),
-                Contato.assunto.ilike(padrao, escape="\\"),
+                contem(Contato.nome_cliente, padrao),
+                contem(Contato.email_cliente, padrao),
+                contem(Contato.assunto, padrao),
             )
         )
     if filtro.produto_id:
