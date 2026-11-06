@@ -4,8 +4,6 @@
   "installCommand": "npm ci",
   "buildCommand": "npx ng build --configuration production",
   "outputDirectory": "dist/frontend/browser",
-  "cleanUrls": true,
-  "trailingSlash": false,
   "rewrites": [
     { "source": "/((?!api/|static/|assets/|media/).*)", "destination": "/index.html" }
   ],
