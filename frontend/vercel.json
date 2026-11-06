@@ -5,7 +5,7 @@
   "buildCommand": "npx ng build --configuration production",
   "outputDirectory": "dist/frontend/browser",
   "rewrites": [
-    { "source": "/((?!api/|static/|assets/|media/).*)", "destination": "/index.html" }
+    { "source": "/((?!api|static).*)", "destination": "/index.html" }
   ],
   "headers": [
     {
