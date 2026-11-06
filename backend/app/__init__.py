@@ -6,6 +6,7 @@ from typing import Any
 
 from dotenv import load_dotenv
 from flask import Flask
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 load_dotenv()
 
@@ -29,6 +30,13 @@ def create_app(config_object: type[Config] = Config, overrides: dict[str, Any] |
         level=app.config["LOG_LEVEL"],
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",
     )
+
+    # Atrás de proxy reverso, o IP real vem em X-Forwarded-For. Só confiamos nesse
+    # cabeçalho quando TRUSTED_PROXIES > 0 (número de proxies na frente da aplicação);
+    # sem proxy, aceitá-lo permitiria falsificar o IP e burlar os limites.
+    proxies = app.config["TRUSTED_PROXIES"]
+    if proxies > 0:
+        app.wsgi_app = ProxyFix(app.wsgi_app, x_for=proxies, x_proto=proxies, x_host=proxies)
 
     uri: str = app.config["SQLALCHEMY_DATABASE_URI"]
     if uri.startswith("sqlite:///"):

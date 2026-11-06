@@ -35,6 +35,10 @@ class Config:
     # Origens autorizadas a chamar /api/* a partir do navegador.
     CORS_ORIGINS = _csv(os.getenv("CORS_ORIGINS"), "http://localhost:4200")
 
+    # Quantidade de proxies reversos (nginx, balanceador...) na frente da aplicação.
+    # 0 = acesso direto: X-Forwarded-For é ignorado e vale o IP da conexão.
+    TRUSTED_PROXIES = max(_int("TRUSTED_PROXIES", 0), 0)
+
     # Limite do corpo das requisições (bytes). O formulário de contato é pequeno.
     MAX_CONTENT_LENGTH = _int("MAX_CONTENT_LENGTH", 16 * 1024)
 
